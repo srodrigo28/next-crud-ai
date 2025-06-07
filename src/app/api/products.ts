@@ -5,6 +5,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { method } = req;
 
   switch (method) {
+    
     case 'GET':
       const { data: products, error } = await supabase.from('products').select('*');
       if (error) return res.status(500).json({ error: error.message });
