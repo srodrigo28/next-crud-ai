@@ -16,12 +16,15 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [modalProduct, setModalProduct] = useState<Product | null>(null);
 
-  const [form, setForm] = useState<{ id?: string; nome: string; preco: number; quantidade: number }>({
-    nome: '',
-    preco: 0,
-    quantidade: 0,
-  });
+  const [form, setForm] = useState<{ id?: string; nome: string; preco: number; quantidade: number }>(
+    {
+      nome: '',
+      preco: 0,
+      quantidade: 0,
+    }
+  );
 
   useEffect(() => {
     fetchProducts();
@@ -92,37 +95,29 @@ export default function Home() {
   };
 
   const handleDelete = async (id: string) => {
-    const productToDelete = products.find((product) => product.id === id);
-
-    if (!productToDelete) {
-      console.error('Produto não encontrado.');
-      return;
-    }
+    if (!confirm('Tem certeza que deseja excluir este produto?')) return;
 
     const { error: deleteError } = await supabase.from('products').delete().eq('id', id);
-
     if (deleteError) {
       console.error('Erro ao deletar produto:', deleteError.message);
       return;
     }
-
-    if (productToDelete.image_url) {
-      const path = productToDelete.image_url.split('/produto/')[1];
-      if (path) {
-        const { error: storageError } = await supabase.storage.from('box3').remove([`produto/${path}`]);
-        if (storageError) {
-          console.error('Erro ao deletar imagem do storage:', storageError.message);
-        }
-      }
-    }
-
     fetchProducts();
+  };
+
+  const handleShowDetails = (product: Product) => {
+    setModalProduct(product);
+  };
+
+  const handleCloseModal = () => {
+    setModalProduct(null);
   };
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6 text-center">CRUD de Produtos</h1>
 
+      {/* Formulário */}
       <form
         onSubmit={handleSubmit}
         className="bg-white shadow-md rounded p-6 h-auto mb-8 max-w-lg mx-auto"
@@ -159,7 +154,7 @@ export default function Home() {
           />
           <div className="flex gap-2">
             <input
-              type="text"
+              type="number"
               placeholder="Preço"
               value={form.preco}
               onChange={(e) => setForm({ ...form, preco: Number(e.target.value) })}
@@ -167,7 +162,7 @@ export default function Home() {
               required
             />
             <input
-              type="text"
+              type="number"
               placeholder="Quantidade"
               value={form.quantidade}
               onChange={(e) => setForm({ ...form, quantidade: Number(e.target.value) })}
@@ -190,6 +185,7 @@ export default function Home() {
         </div>
       </form>
 
+      {/* Lista de Produtos */}
       <ul className="space-y-4">
         {products.map((product) => (
           <li
@@ -223,10 +219,46 @@ export default function Home() {
               >
                 Excluir
               </button>
+              <button
+                onClick={() => handleShowDetails(product)}
+                className="bg-blue-500 text-white px-4 py-2 rounded"
+              >
+                Detalhes
+              </button>
             </div>
           </li>
         ))}
       </ul>
+
+      {/* Modal de Detalhes */}
+      {modalProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded shadow-lg max-w-md w-full relative">
+            {modalProduct.image_url && (
+              <Image
+                src={modalProduct.image_url}
+                alt={modalProduct.nome}
+                width={400}
+                height={400}
+                className="rounded mb-2 bg-white"
+              />
+            )}
+            <h2 className="text-xl font-bold text-center text-black p-2">{modalProduct.nome}</h2>
+            <div className='flex gap-2'>
+            <p className='text-black p-2'>Quantidade: {modalProduct.quantidade} unidades</p>
+            <p className='text-black p-2'>Preço: R$ {modalProduct.preco.toFixed(2)}</p>
+            </div>
+            <button
+              onClick={handleCloseModal}
+              className="mt-4 bg-red-600 text-white px-4 py-2 rounded-2xl
+              absolute top-1 right-3 cursor-pointer animate-pulse
+              "
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

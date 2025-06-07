@@ -1,41 +1,72 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { supabase } from '../../lib/supabase';
+'use client';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { method } = req;
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '../../../lib/supabase';
+import Image from 'next/image';
 
-  switch (method) {
-    
-    case 'GET':
-      const { data: products, error } = await supabase.from('products').select('*');
-      if (error) return res.status(500).json({ error: error.message });
-      return res.status(200).json(products);
+type Product = {
+  id: string;
+  nome: string;
+  preco: number;
+  quantidade: number;
+  image_url: string;
+};
 
-    case 'POST':
-      const { nome, preco, quantidade } = req.body;
-      const { data, error: insertError } = await supabase
-        .from('products')
-        .insert([{ nome, preco, quantidade }]);
-      if (insertError) return res.status(500).json({ error: insertError.message });
-      return res.status(201).json(data);
+export default function ProductDetails({ params }: { params: { id: string } }) {
+  const { id } = params; // O parâmetro `id` vem diretamente de `params`.
+  const router = useRouter(); // Para navegar de volta.
 
-    case 'PUT':
-      const { id, ...updateFields } = req.body;
-      const { data: updated, error: updateError } = await supabase
-        .from('products')
-        .update(updateFields)
-        .eq('id', id);
-      if (updateError) return res.status(500).json({ error: updateError.message });
-      return res.status(200).json(updated);
+  const [product, setProduct] = useState<Product | null>(null);
 
-    case 'DELETE':
-      const { deleteId } = req.body;
-      const { error: deleteError } = await supabase.from('products').delete().eq('id', deleteId);
-      if (deleteError) return res.status(500).json({ error: deleteError.message });
-      return res.status(204).end();
+  useEffect(() => {
+    if (id) {
+      fetchProductDetails(id);
+    }
+  }, [id]);
 
-    default:
-      res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
-      return res.status(405).end(`Method ${method} Not Allowed`);
+  const fetchProductDetails = async (productId: string) => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', productId)
+      .single();
+
+    if (error) {
+      console.error('Erro ao buscar detalhes do produto:', error.message);
+      return;
+    }
+
+    setProduct(data);
+  };
+
+  if (!product) {
+    return <p>Carregando...</p>;
   }
+
+  return (
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-6">Detalhes do Produto</h1>
+      <div className="bg-white shadow-md rounded p-6 max-w-lg mx-auto">
+        {product.image_url && (
+          <Image
+            src={product.image_url}
+            alt={product.nome}
+            width={200}
+            height={200}
+            className="w-full h-auto object-cover rounded mb-4"
+          />
+        )}
+        <h2 className="text-xl font-bold">{product.nome}</h2>
+        <p className="text-gray-500">Preço: ${product.preco.toFixed(2)}</p>
+        <p className="text-gray-500">Quantidade: {product.quantidade} unidades</p>
+        <button
+          onClick={() => router.back()}
+          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          Voltar
+        </button>
+      </div>
+    </div>
+  );
 }
