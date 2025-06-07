@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface User {
   id: string;
@@ -89,11 +90,12 @@ export default function Dashboard() {
       {error && <p className="text-red-600">{error}</p>}
 
       {!loading && !error && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {users.map((user) => (
             <div key={user.id} className="flex items-center bg-white shadow rounded p-4 space-x-4">
+              <Image src="/default-avatar.png" alt="Avatar" width={70} height={70} />
               <div>
-                <p className="font-semibold">{user.nome}</p>
+                <p className="font-semibold text-black">{user.nome}</p>
                 <p className="text-gray-600 text-sm">{user.email}</p>
               </div>
             </div>
