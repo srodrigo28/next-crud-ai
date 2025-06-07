@@ -14,19 +14,18 @@ type Product = {
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
-   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [form, setForm] = useState<{ id?: string; nome: string; preco: number; quantidade: number }>({
     nome: '',
     preco: 0,
     quantidade: 0,
   });
 
-  // Fetch initial products
   useEffect(() => {
     fetchProducts();
   }, []);
 
-  // Fetch all products from Supabase
   const fetchProducts = async () => {
     const { data, error } = await supabase.from('products').select('*');
     if (error) {
@@ -36,16 +35,13 @@ export default function Home() {
     if (data) setProducts(data);
   };
 
-  // Handle form submission for create or update
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Upload da imagem
     let imageUrl = null;
     if (imageFile) {
       const fileName = `${Date.now()}-${imageFile.name}`;
       const { error } = await supabase.storage.from('box3').upload(`produto/${fileName}`, imageFile);
-      // const { data, error } = await supabase.storage.from('box3').upload(`produto/${fileName}`, imageFile);
 
       if (error) {
         console.error('Erro ao enviar imagem:', error.message);
@@ -55,7 +51,6 @@ export default function Home() {
       imageUrl = supabase.storage.from('box3').getPublicUrl(`produto/${fileName}`).data.publicUrl;
     }
 
-    // Salvar dados do produto no banco
     const { error: insertError } = await supabase.from('products').insert([
       { ...form, image_url: imageUrl },
     ]);
@@ -65,59 +60,75 @@ export default function Home() {
       return;
     }
 
-    // Limpar formulário
     setForm({ nome: '', preco: 0, quantidade: 0 });
     setImageFile(null);
+    setImagePreview(null);
     alert('Produto cadastrado com sucesso!');
+    fetchProducts(); // Atualiza a lista
   };
 
-  // Populate form with product data for editing
   const handleEdit = (product: Product) => {
     setForm(product);
   };
 
-  // Delete a product by ID
-  // Delete a product by ID
-const handleDelete = async (id: string) => {
-  // Encontrar o produto no estado
-  const productToDelete = products.find((product) => product.id === id);
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setImageFile(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setImagePreview(null);
+    }
+  };
 
-  if (!productToDelete) {
-    console.error('Produto não encontrado.');
-    return;
-  }
+  const handleDelete = async (id: string) => {
+    const productToDelete = products.find((product) => product.id === id);
 
-  // Deletar o registro no banco de dados
-  const { error: deleteError } = await supabase.from('products').delete().eq('id', id);
+    if (!productToDelete) {
+      console.error('Produto não encontrado.');
+      return;
+    }
 
-  if (deleteError) {
-    console.error('Erro ao deletar produto:', deleteError.message);
-    return;
-  }
+    const { error: deleteError } = await supabase.from('products').delete().eq('id', id);
 
-  // Remover a imagem associada (se houver)
-  if (productToDelete.image_url) {
-    // Extrair o caminho relativo no bucket
-    const path = productToDelete.image_url.split('/produto/')[1]; // Obtém "nome-da-imagem"
-    if (path) {
-      const { error: storageError } = await supabase.storage.from('box3').remove([`produto/${path}`]);
-      if (storageError) {
-        console.error('Erro ao deletar imagem do storage:', storageError.message);
+    if (deleteError) {
+      console.error('Erro ao deletar produto:', deleteError.message);
+      return;
+    }
+
+    if (productToDelete.image_url) {
+      const path = productToDelete.image_url.split('/produto/')[1];
+      if (path) {
+        const { error: storageError } = await supabase.storage.from('box3').remove([`produto/${path}`]);
+        if (storageError) {
+          console.error('Erro ao deletar imagem do storage:', storageError.message);
+        }
       }
     }
-  }
 
-  // Atualizar localmente o estado
-  setProducts((prev) => prev.filter((product) => product.id !== id));
-};
+    fetchProducts(); // Atualiza a lista após exclusão
+  };
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">CRUD de Produtos</h1>
 
-      {/* Product Form */}
-      <form onSubmit={handleSubmit} className="mb-4">
-        {/* Nome */}
+      <form onSubmit={handleSubmit} className="mb-5 w-full mx-auto">
+        <label className="cursor-pointer w-36 bg-gray-200 hover:bg-gray-300 p-2 rounded flex items-center justify-center mb-4">
+          {imagePreview ? (
+            <Image src={imagePreview} alt="Preview" width={100} height={100} className="rounded" />
+          ) : (
+            <span className="text-sm text-gray-700">Adicionar Imagem</span>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            className="hidden"
+          />
+        </label>
         <input
           type="text"
           placeholder="Nome"
@@ -126,7 +137,6 @@ const handleDelete = async (id: string) => {
           className="border p-2 mr-2"
           required
         />
-        {/* Preço */}
         <input
           type="number"
           placeholder="Preço"
@@ -135,7 +145,6 @@ const handleDelete = async (id: string) => {
           className="border p-2 mr-2"
           required
         />
-        {/* Quantidade */}
         <input
           type="number"
           placeholder="Quantidade"
@@ -144,24 +153,14 @@ const handleDelete = async (id: string) => {
           className="border p-2 mr-2"
           required
         />
-        {/* Upload de Imagem */}
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-          className="block mb-4"
-        />
-        {/* Botão */}
-        <button type="submit" className="bg-blue-500 text-white px-4 py-2">
+        <button type="submit" className="bg-blue-500 text-white px-4 py-2 mt-4">
           Cadastrar Produto
         </button>
       </form>
 
-      {/* Product List */}
       <ul>
         {products.map((product) => (
           <li key={product.id} className="border-b p-2 flex items-center">
-            {/* Imagem do Produto */}
             {product.image_url && (
               <Image
                 src={product.image_url}
@@ -171,11 +170,9 @@ const handleDelete = async (id: string) => {
                 className="w-16 h-16 object-cover mr-4"
               />
             )}
-            {/* Detalhes do Produto */}
             <div>
               <strong>{product.nome}</strong> - ${product.preco.toFixed(2)} - {product.quantidade} unidades
             </div>
-            {/* Botões */}
             <div className="ml-auto">
               <button
                 onClick={() => handleEdit(product)}
