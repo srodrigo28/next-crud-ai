@@ -1,261 +1,218 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
-import Image from 'next/image';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-type Product = {
-  id: string;
-  nome: string;
-  preco: number;
-  quantidade: number;
-  image_url: string;
-};
+export default function LoginPage() {
+  const router = useRouter();
 
-export default function Home() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [modalProduct, setModalProduct] = useState<Product | null>(null);
+  // Estados para login
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const [form, setForm] = useState<{ id?: string; nome: string; preco: number; quantidade: number }>(
-    {
-      nome: '',
-      preco: 0,
-      quantidade: 0,
-    }
-  );
+  // Modal de cadastro
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [registerForm, setRegisterForm] = useState({
+    nome: '',
+    telefone: '',
+    email: '',
+    senha: '',
+    confirmaSenha: '',
+  });
+  const [registerError, setRegisterError] = useState('');
+  const [registerLoading, setRegisterLoading] = useState(false);
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
-    const { data, error } = await supabase.from('products').select('*');
-    if (error) {
-      console.error('Erro ao buscar produtos:', error.message);
-      return;
-    }
-    if (data) setProducts(data);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Login
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
 
-    let imageUrl = null;
-    if (imageFile) {
-      const fileName = `${Date.now()}-${imageFile.name}`;
-      const { error } = await supabase.storage.from('box3').upload(`produto/${fileName}`, imageFile);
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'login', email, password }),
+      });
 
-      if (error) {
-        console.error('Erro ao enviar imagem:', error.message);
-        return;
+      const data = await res.json();
+
+      if (!data.success) {
+        setError(data.message || 'Erro no login');
+      } else {
+        alert('Login realizado com sucesso!');
+        router.push('/dashboard'); // redireciona para dashboard
       }
-
-      imageUrl = supabase.storage.from('box3').getPublicUrl(`produto/${fileName}`).data.publicUrl;
+    } catch {
+      setError('Erro inesperado no login');
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const { error: insertError } = await supabase.from('products').insert([
-      { ...form, image_url: imageUrl },
-    ]);
+  // Cadastro
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegisterError('');
 
-    if (insertError) {
-      console.error('Erro ao salvar produto:', insertError.message);
+    if (registerForm.senha !== registerForm.confirmaSenha) {
+      setRegisterError('As senhas não conferem.');
       return;
     }
 
-    setForm({ nome: '', preco: 0, quantidade: 0 });
-    setImageFile(null);
-    setImagePreview(null);
-    alert('Produto cadastrado com sucesso!');
-    fetchProducts();
-  };
+    setRegisterLoading(true);
 
-  const handleEdit = (product: Product) => {
-    setForm(product);
-    setImagePreview(product.image_url);
-  };
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'register',
+          nome: registerForm.nome,
+          telefone: registerForm.telefone,
+          email: registerForm.email,
+          password: registerForm.senha,
+        }),
+      });
 
-  const handleCancel = () => {
-    setForm({ nome: '', preco: 0, quantidade: 0 });
-    setImageFile(null);
-    setImagePreview(null);
-  };
+      const data = await res.json();
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    setImageFile(file);
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => setImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
-    } else {
-      setImagePreview(null);
+      if (!data.success) {
+        setRegisterError(data.message || 'Erro no cadastro');
+      } else {
+        alert('Cadastro realizado com sucesso! Verifique seu email para ativar a conta.');
+        setShowRegisterModal(false);
+        setRegisterForm({
+          nome: '',
+          telefone: '',
+          email: '',
+          senha: '',
+          confirmaSenha: '',
+        });
+        router.push('/dashboard'); // redireciona para dashboard após cadastro
+      }
+    } catch {
+      setRegisterError('Erro inesperado no cadastro');
+    } finally {
+      setRegisterLoading(false);
     }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este produto?')) return;
-
-    const { error: deleteError } = await supabase.from('products').delete().eq('id', id);
-    if (deleteError) {
-      console.error('Erro ao deletar produto:', deleteError.message);
-      return;
-    }
-    fetchProducts();
-  };
-
-  const handleShowDetails = (product: Product) => {
-    setModalProduct(product);
-  };
-
-  const handleCloseModal = () => {
-    setModalProduct(null);
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6 text-center">CRUD de Produtos</h1>
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-100 text-black">
+      {/* Login */}
+      <form onSubmit={handleLogin} className="bg-white p-8 rounded shadow-md w-full max-w-md">
+        <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
 
-      {/* Formulário */}
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white shadow-md rounded p-6 h-auto mb-8 max-w-lg mx-auto"
-      >
-        <label className="block cursor-pointer mb-4 bg-gray-100">
-          {imagePreview ? (
-            <Image
-              src={imagePreview}
-              alt="Preview"
-              width={150}
-              height={250}
-              className="rounded object-cover mx-auto h-44"
-            />
-          ) : (
-            <div className="bg-gray-100 border-dashed border-2 border-gray-300 p-10 text-center rounded">
-              <span className="text-gray-500">Adicionar Imagem</span>
-            </div>
-          )}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="hidden"
-          />
-        </label>
-        <div className="space-y-4">
-          <input
-            type="text"
-            placeholder="Nome"
-            value={form.nome}
-            onChange={(e) => setForm({ ...form, nome: e.target.value })}
-            className="w-full p-3 border rounded text-black"
-            required
-          />
-          <div className="flex gap-2">
-            <input
-              type="number"
-              placeholder="Preço"
-              value={form.preco}
-              onChange={(e) => setForm({ ...form, preco: Number(e.target.value) })}
-              className="w-full p-3 border rounded text-black"
-              required
-            />
-            <input
-              type="number"
-              placeholder="Quantidade"
-              value={form.quantidade}
-              onChange={(e) => setForm({ ...form, quantidade: Number(e.target.value) })}
-              className="w-full p-3 border rounded text-black"
-              required
-            />
-          </div>
-        </div>
-        <div>
-          <button type="submit" className="mt-4 w-full bg-blue-600 text-white p-3 rounded">
-            {form.id ? 'Atualizar Produto' : 'Cadastrar Produto'}
-          </button>
+        {error && <p className="text-red-600 mb-4 text-center font-semibold">{error}</p>}
+
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="w-full p-3 mb-4 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <input
+          type="password"
+          placeholder="Senha"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          className="w-full p-3 mb-6 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700 transition"
+        >
+          {loading ? 'Entrando...' : 'Entrar'}
+        </button>
+
+        <p className="mt-6 text-center text-gray-600">
+          Não tem uma conta?{' '}
           <button
             type="button"
-            onClick={handleCancel}
-            className="mt-4 w-full bg-red-600 text-white p-3 rounded"
+            onClick={() => setShowRegisterModal(true)}
+            className="text-blue-600 underline hover:text-blue-800"
           >
-            Cancelar
+            Cadastre-se
           </button>
-        </div>
+        </p>
       </form>
 
-      {/* Lista de Produtos */}
-      <ul className="space-y-4">
-        {products.map((product) => (
-          <li
-            key={product.id}
-            className="flex flex-col sm:flex-row items-center bg-white shadow-md rounded p-4"
-          >
-            {product.image_url && (
-              <Image
-                src={product.image_url}
-                alt={product.nome}
-                width={100}
-                height={100}
-                className="w-20 h-20 object-cover rounded"
-              />
-            )}
-            <div className="flex-1 mt-4 sm:mt-0 sm:ml-4 text-center sm:text-left">
-              <strong className="block text-lg">{product.nome}</strong>
-              <span className="block text-gray-500">${product.preco.toFixed(2)}</span>
-              <span className="block text-gray-500">{product.quantidade} unidades</span>
-            </div>
-            <div className="flex space-x-2 mt-4 sm:mt-0">
-              <button
-                onClick={() => handleEdit(product)}
-                className="bg-yellow-500 text-white px-4 py-2 rounded"
-              >
-                Editar
-              </button>
-              <button
-                onClick={() => handleDelete(product.id)}
-                className="bg-red-500 text-white px-4 py-2 rounded"
-              >
-                Excluir
-              </button>
-              <button
-                onClick={() => handleShowDetails(product)}
-                className="bg-blue-500 text-white px-4 py-2 rounded"
-              >
-                Detalhes
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      {/* Modal de Detalhes */}
-      {modalProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded shadow-lg max-w-md w-full relative">
-            {modalProduct.image_url && (
-              <Image
-                src={modalProduct.image_url}
-                alt={modalProduct.nome}
-                width={400}
-                height={400}
-                className="rounded mb-2 bg-white"
-              />
-            )}
-            <h2 className="text-xl font-bold text-center text-black p-2">{modalProduct.nome}</h2>
-            <div className='flex gap-2'>
-            <p className='text-black p-2'>Quantidade: {modalProduct.quantidade} unidades</p>
-            <p className='text-black p-2'>Preço: R$ {modalProduct.preco.toFixed(2)}</p>
-            </div>
+      {/* Modal de cadastro */}
+      {showRegisterModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded p-8 max-w-md w-full relative shadow-lg">
             <button
-              onClick={handleCloseModal}
-              className="mt-4 bg-red-600 text-white px-4 py-2 rounded-2xl
-              absolute top-1 right-3 cursor-pointer animate-pulse
-              "
+              onClick={() => setShowRegisterModal(false)}
+              className="absolute top-3 right-3 text-gray-600 hover:text-gray-900 text-xl font-bold"
+              aria-label="Fechar modal"
             >
-              Fechar
+              &times;
             </button>
+
+            <h2 className="text-2xl font-bold mb-6 text-center">Cadastro</h2>
+
+            {registerError && (
+              <p className="mb-4 text-red-600 font-semibold text-center">{registerError}</p>
+            )}
+
+            <form onSubmit={handleRegister}>
+              <input
+                type="text"
+                placeholder="Nome"
+                value={registerForm.nome}
+                onChange={(e) => setRegisterForm({ ...registerForm, nome: e.target.value })}
+                required
+                className="w-full p-3 mb-4 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="tel"
+                placeholder="Telefone"
+                value={registerForm.telefone}
+                onChange={(e) => setRegisterForm({ ...registerForm, telefone: e.target.value })}
+                required
+                className="w-full p-3 mb-4 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                value={registerForm.email}
+                onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
+                required
+                className="w-full p-3 mb-4 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="password"
+                placeholder="Senha"
+                value={registerForm.senha}
+                onChange={(e) => setRegisterForm({ ...registerForm, senha: e.target.value })}
+                required
+                className="w-full p-3 mb-4 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="password"
+                placeholder="Confirmar Senha"
+                value={registerForm.confirmaSenha}
+                onChange={(e) => setRegisterForm({ ...registerForm, confirmaSenha: e.target.value })}
+                required
+                className="w-full p-3 mb-6 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+
+              <button
+                type="submit"
+                disabled={registerLoading}
+                className="w-full bg-green-600 text-white p-3 rounded hover:bg-green-700 transition"
+              >
+                {registerLoading ? 'Cadastrando...' : 'Cadastrar'}
+              </button>
+            </form>
           </div>
         </div>
       )}

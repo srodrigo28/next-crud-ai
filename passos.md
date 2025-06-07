@@ -1,5 +1,9 @@
 npm install @supabase/supabase-js
 
+npm install jsonwebtoken cookie
+
+npm install --save-dev @types/jsonwebtoken @types/cookie
+
 
 * next.config.ts
 ```
