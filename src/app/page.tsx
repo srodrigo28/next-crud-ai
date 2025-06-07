@@ -101,9 +101,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-100 text-black">
+    <div className="min-h-screen flex flex-col 
+    items-center justify-center p-4 bg-black text-white">
       {/* Login */}
-      <form onSubmit={handleLogin} className="bg-white p-8 rounded shadow-md w-full max-w-md">
+      <form onSubmit={handleLogin} className="bg-slate-950 p-8 rounded shadow-2xl shadow-blue-600 w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
 
         {error && <p className="text-red-600 mb-4 text-center font-semibold">{error}</p>}
@@ -133,12 +134,12 @@ export default function LoginPage() {
           {loading ? 'Entrando...' : 'Entrar'}
         </button>
 
-        <p className="mt-6 text-center text-gray-600">
+        <p className="mt-6 text-center text-gray-400">
           Não tem uma conta?{' '}
           <button
             type="button"
             onClick={() => setShowRegisterModal(true)}
-            className="text-blue-600 underline hover:text-blue-800"
+            className="text-blue-600 tracking-wider cursor-pointer underline hover:text-blue-800"
           >
             Cadastre-se
           </button>
@@ -148,10 +149,11 @@ export default function LoginPage() {
       {/* Modal de cadastro */}
       {showRegisterModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded p-8 max-w-md w-full relative shadow-lg">
+          <div className="bg-slate-950 rounded p-8 max-w-md w-full relative shadow-2xl shadow-green-600">
             <button
               onClick={() => setShowRegisterModal(false)}
-              className="absolute top-3 right-3 text-gray-600 hover:text-gray-900 text-xl font-bold"
+              className="absolute top-3 right-3 text-white cursor-pointer
+               hover:text-red-600 hover:text-2xl text-xl font-bold duration-300 transition-colors"
               aria-label="Fechar modal"
             >
               &times;
@@ -188,13 +190,16 @@ export default function LoginPage() {
                 required
                 className="w-full p-3 mb-4 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <input
+
+              <div className='flex gap-2'>
+                <input
                 type="password"
                 placeholder="Senha"
                 value={registerForm.senha}
                 onChange={(e) => setRegisterForm({ ...registerForm, senha: e.target.value })}
                 required
-                className="w-full p-3 mb-4 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 mb-4 border rounded focus:outline-none 
+                focus:ring-2 focus:ring-blue-500"
               />
               <input
                 type="password"
@@ -202,8 +207,10 @@ export default function LoginPage() {
                 value={registerForm.confirmaSenha}
                 onChange={(e) => setRegisterForm({ ...registerForm, confirmaSenha: e.target.value })}
                 required
-                className="w-full p-3 mb-6 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 mb-4 border rounded focus:outline-none 
+                focus:ring-2 focus:ring-blue-500"
               />
+              </div>
 
               <button
                 type="submit"
