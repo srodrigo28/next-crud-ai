@@ -114,13 +114,13 @@ export default function Home() {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6 text-center">CRUD de Produtos</h1>
-
+    <div className="container flex gap-2 w-screen h-screen bg-blue-400 ">
+      
       {/* Formulário */}
       <form
         onSubmit={handleSubmit}
-        className="bg-white shadow-md rounded p-6 h-auto mb-8 max-w-lg mx-auto"
+        className="bg-white shadow-md
+        rounded p-6 h-72 mb-8"
       >
         <label className="block cursor-pointer mb-4 bg-gray-100">
           {imagePreview ? (
@@ -143,6 +143,7 @@ export default function Home() {
             className="hidden"
           />
         </label>
+
         <div className="space-y-4">
           <input
             type="text"
@@ -171,6 +172,7 @@ export default function Home() {
             />
           </div>
         </div>
+
         <div>
           <button type="submit" className="mt-4 w-full bg-blue-600 text-white p-3 rounded">
             {form.id ? 'Atualizar Produto' : 'Cadastrar Produto'}
@@ -186,7 +188,7 @@ export default function Home() {
       </form>
 
       {/* Lista de Produtos */}
-      <ul className="space-y-4">
+      <ul className="space-y-4 bg-blue-300">
         {products.map((product) => (
           <li
             key={product.id}
@@ -230,6 +232,7 @@ export default function Home() {
         ))}
       </ul>
 
+      
       {/* Modal de Detalhes */}
       {modalProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
@@ -259,6 +262,7 @@ export default function Home() {
           </div>
         </div>
       )}
+
     </div>
   );
 }
