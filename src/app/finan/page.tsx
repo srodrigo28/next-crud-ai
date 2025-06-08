@@ -127,8 +127,10 @@ const Finan = () => {
                             )}
                             <div className="flex-1 mt-4 sm:mt-0 sm:ml-4 text-center sm:text-left">
                               <strong className="block text-lg">{entradas.nome}</strong>
+                              <strong className="block text-lg">{entradas.categoria}</strong>
                               <span className="block text-gray-500">${entradas.preco.toFixed(2)}</span>
-                              <span className="block text-gray-500">{entradas.quantidade} unidades</span>
+                              <span className="block text-gray-500">{new Date(entradas.data_pag).toLocaleDateString()}</span>
+                              <span className="block text-gray-500">{new Date(entradas.data_venc).toLocaleDateString()}</span>
                             </div>
                             <div className="flex space-x-2 mt-4 sm:mt-0">
                               <button
@@ -144,7 +146,6 @@ const Finan = () => {
                                 Excluir
                               </button>
                               <button
-                                onClick={() => handleShowDetails(entradas)}
                                 className="bg-blue-500 text-white px-4 py-2 rounded"
                               >
                                 Detalhes
